@@ -420,3 +420,56 @@ class LspToggleHoverPopupsCommand(sublime_plugin.WindowCommand):
                     session_view.view.settings().set(SHOW_DEFINITIONS_KEY, False)
                 else:
                     session_view.reset_show_definitions()
+
+
+class LspGetHoverContentCommand(LspTextCommand):
+    def run(self, edit):
+        try:
+            region = self.view.sel()[0]
+            if region is None:
+                return
+        except:
+            return
+        hover_point = region.begin()
+        wm = windows.lookup(self.view.window())
+        if not wm:
+            return
+        self.view.run_command("lsp_hover", args={"point": hover_point})
+        self.run_async(wm, hover_point)
+
+    def run_async(self, wm, hover_point):
+        listener = wm.listener_for_view(self.view)
+        if not listener:
+            return
+        hover_promises = []
+        language_maps = []
+        for session in listener.sessions_async('hoverProvider'):
+            hover_promises.append(session.send_request_task(
+                Request("textDocument/hover", text_document_position_params(self.view, hover_point), self.view)
+            ))
+            language_maps.append(session.markdown_language_id_to_st_syntax_map())
+        Promise.all(hover_promises).then(partial(self._on_done, listener, hover_point, language_maps))
+
+    def _on_done(self, listener, point, language_maps, responses):
+        result_list = []
+        for response, language_map in zip(responses, language_maps):
+            if not response or isinstance(response, Error):
+                continue
+            contents = response.get('contents')
+            if not contents:
+                continue
+            value = contents.get('value')
+            if not value:
+                continue
+            value_split = value.split('\n')
+            text_list = []
+            for v in value_split:
+                v = v.strip()
+                if not v or v.startswith('```'):
+                    continue
+                text_list.append(v)
+            text = ' '.join(text_list)
+            result_list.append(text)
+        result = '\n'.join(result_list)
+        print(result)
+        sublime.set_clipboard(result)

@@ -56,6 +56,7 @@ from .plugin.goto_diagnostic import LspGotoDiagnosticCommand
 from .plugin.hierarchy import LspCallHierarchyCommand
 from .plugin.hierarchy import LspHierarchyToggleCommand
 from .plugin.hierarchy import LspTypeHierarchyCommand
+from .plugin.hover import LspGetHoverContentCommand
 from .plugin.hover import LspHoverCommand
 from .plugin.hover import LspToggleHoverPopupsCommand
 from .plugin.inlay_hint import LspInlayHintClickCommand
@@ -116,6 +117,7 @@ __all__ = (
     "LspFormatCommand",
     "LspFormatDocumentCommand",
     "LspFormatDocumentRangeCommand",
+    "LspGetHoverContentCommand",
     "LspGotoDiagnosticCommand",
     "LspHideRenameButtonsCommand",
     "LspHierarchyToggleCommand",
