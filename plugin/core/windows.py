@@ -533,7 +533,7 @@ class WindowManager(Manager, WindowConfigChangeListener):
         for row, col, code, href in prephantoms:
             point = panel.text_point(row, col)
             region = sublime.Region(point, point)
-            phantoms.append(sublime.Phantom(region, f"({make_link(href, code)})", sublime.LAYOUT_INLINE))
+            phantoms.append(sublime.Phantom(region, f"({make_link(href, code)})", sublime.PhantomLayout.INLINE))
         self._panel_code_phantoms.update(phantoms)
 
     # --- Implements WindowConfigChangeListener ------------------------------------------------------------------------
@@ -593,12 +593,6 @@ class WindowRegistry(LspSettingsChangeListener, GlobalLspListener):
         if wm:
             sublime.set_timeout_async(wm.destroy)
 
-    def _on_userprefs_updated_async(self) -> None:
-        for wm in self._windows.values():
-            wm.on_diagnostics_updated()
-            for session in wm.get_sessions():
-                session.on_userprefs_changed_async()
-
     # --- Implements LspSettingsChangeListener -------------------------------------------------------------------------
 
     def on_client_config_updated(self, config_name: str | None = None) -> None:
@@ -606,7 +600,10 @@ class WindowRegistry(LspSettingsChangeListener, GlobalLspListener):
             wm.get_config_manager().update(config_name)
 
     def on_userprefs_updated(self) -> None:
-        sublime.set_timeout_async(self._on_userprefs_updated_async)
+        for wm in self._windows.values():
+            wm.on_diagnostics_updated()
+            for session in wm.get_sessions():
+                sublime.set_timeout_async(session.on_userprefs_changed_async)
 
     # --- Implements GlobalLspListener ---------------------------------------------------------------------------------
 
