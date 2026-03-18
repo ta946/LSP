@@ -29,6 +29,7 @@ from .core.views import format_code_actions_for_quick_panel
 from .core.views import format_diagnostic_for_html
 from .core.views import FORMAT_MARKED_STRING
 from .core.views import FORMAT_MARKUP_CONTENT
+from .core.views import html_wrapper
 from .core.views import is_location_href
 from .core.views import make_command_link
 from .core.views import make_link
@@ -96,12 +97,8 @@ def code_actions_content(actions_by_config: list[CodeActionsByConfigName], icon_
             text = actions[0].get('title', 'code action')
         href = "{}:{}".format('code-actions', config_name)
         link = make_link(href, text)
-        formatted.append(
-            f'''
-            <div class="code-actions">
-                {icon_html}<span class="link with-padding">{link}</span><span class="color-muted">{config_name}</span>
-            </div>'''
-        )
+        formatted.append(html_wrapper(f'{icon_html} {link} <span class="color-muted">{config_name}</span>',
+                                      class_name='code-actions'))
     return "".join(formatted)
 
 
@@ -269,8 +266,9 @@ class LspHoverCommand(LspTextCommand):
         for hover, language_map in self._hover_responses:
             content = (hover.get('contents') or '') if isinstance(hover, dict) else ''
             allowed_formats = FORMAT_MARKED_STRING | FORMAT_MARKUP_CONTENT
-            contents.append(minihtml(self.view, content, allowed_formats, language_map))
-        return '<hr>'.join(contents)
+            if parsed := minihtml(self.view, content, allowed_formats, language_map):
+                contents.append(html_wrapper(parsed))
+        return '<hr class="m-0">'.join(contents)
 
     def hover_range(self) -> sublime.Region | None:
         for hover, _ in self._hover_responses:
@@ -296,9 +294,9 @@ class LspHoverCommand(LspTextCommand):
                     symbol_actions_content += ' | '
                 symbol_actions_content += link_content
             if symbol_actions_content:
-                contents += '<div class="actions">' + symbol_actions_content + '</div>'
+                contents += html_wrapper(symbol_actions_content, class_name='actions')
         elif link_content:
-            contents += '<div class="{}">{}</div>'.format('link with-padding' if contents else 'link', link_content)
+            contents += html_wrapper(link_content)
 
         _test_contents.clear()
         _test_contents.append(contents)  # for testing only
