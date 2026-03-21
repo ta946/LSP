@@ -753,7 +753,8 @@ default_status_view_handler = DefaultViewStatusHandler()
 
 
 class ClientConfig:
-    """Represents the configuration for a language server.
+    """
+    Represents the configuration for a language server.
 
     Holds all settings needed to start and communicate with a language server, including the command to launch it, the
     file types it applies to, transport options, and LSP-level options such as initialization options and capability
@@ -873,7 +874,8 @@ class ClientConfig:
 
     @classmethod
     def from_sublime_settings(cls, name: str, settings_registration: SettingsRegistration) -> ClientConfig:
-        """Create a ClientConfig from a Sublime Text `Settings` object.
+        """
+        Create a ClientConfig from a Sublime Text `Settings` object.
 
         Plugin-defined defaults are read from a resource path to the plugin's `.sublime-settings` file) and user
         overrides are layered on top from `Settings`.
@@ -929,7 +931,8 @@ class ClientConfig:
 
     @classmethod
     def from_dict(cls, name: str, d: dict[str, Any]) -> ClientConfig:
-        """Create a ClientConfig from a plain dictionary.
+        """
+        Create a ClientConfig from a plain dictionary.
 
         :param name: Unique server name.
         :param d: Dictionary of configuration values.
@@ -965,7 +968,8 @@ class ClientConfig:
 
     @classmethod
     def from_config(cls, src_config: ClientConfig, override: dict[str, Any]) -> ClientConfig:
-        """Create a ClientConfig by applying overrides to an existing config.
+        """
+        Create a ClientConfig by applying overrides to an existing config.
 
         Values present in `override` take precedence over those in `src_config`. Structured
         values (`initialization_options`, `settings`) are deep-merged rather than replaced wholesale. The raw
@@ -1006,7 +1010,8 @@ class ClientConfig:
         )
 
     def resolve_transport_config(self, variables: dict[str, str]) -> TransportConfig:
-        """Build a :class:`TransportConfig` ready for starting the language server.
+        """
+        Build a :class:`TransportConfig` ready for starting the language server.
 
         Expands variables in the command arguments and environment, resolves the TCP port (including binding a listener
         socket when LSP is hosting the server), and returns the resulting transport configuration.
@@ -1048,7 +1053,8 @@ class ClientConfig:
         self._view_status_handler = handler
 
     def set_view_status(self, view: sublime.View, message: str) -> None:
-        """Update the view status bar entry for this server.
+        """
+        Update the view status bar entry for this server.
 
         Shows `"<name> (<message>)"` when `message` is non-empty, or just `"<name>"` otherwise. Does nothing (and erases
         any existing entry) when `show_view_status` is disabled in `LSP.sublime-settings`.
@@ -1059,14 +1065,16 @@ class ClientConfig:
         self._view_status_handler.on_view_status_changed(self.name, view, message)
 
     def erase_view_status(self, view: sublime.View) -> None:
-        """Remove this server's entry from the view's status bar.
+        """
+        Remove this server's entry from the view's status bar.
 
         :param view: The view whose status bar entry should be cleared.
         """
         self._view_status_handler.on_view_status_changed(self.name, view, None)
 
     def match_view(self, view: sublime.View, scheme: str) -> bool:
-        """Return `True` if this server should be active for the given view.
+        """
+        Return `True` if this server should be active for the given view.
 
         Delegates to the registered plugin's `is_applicable` method when one is available; otherwise checks that
         `scheme` is in :attr:`schemes` and that the view's syntax scope matches :attr:`selector`.
@@ -1082,7 +1090,8 @@ class ClientConfig:
         return False
 
     def map_client_path_to_server_uri(self, path: str) -> str:
-        """Convert a local filesystem path to the URI the language server expects.
+        """
+        Convert a local filesystem path to the URI the language server expects.
 
         Applies any configured :attr:`path_maps` to translate the path (e.g. from a local path to a container path),
         then converts the result to a `file://` URI.
@@ -1098,7 +1107,8 @@ class ClientConfig:
         return filename_to_uri(path)
 
     def map_server_uri_to_client_path(self, uri: DocumentUri) -> str:
-        """Convert a URI from the language server to a local filesystem path.
+        """
+        Convert a URI from the language server to a local filesystem path.
 
         Only `file://` and `res://` URIs are supported; other schemes raise :exc:`ValueError`. Applies any
         configured :attr:`path_maps` in reverse to translate the server path back to the local path.
@@ -1118,7 +1128,8 @@ class ClientConfig:
         return path
 
     def is_disabled_capability(self, capability_path: str) -> bool:
-        """Return `True` if the given capability has been disabled in the config.
+        """
+        Return `True` if the given capability has been disabled in the config.
 
         Walks :attr:`disabled_capabilities` along `capability_path` (a string such as `"hoverProvider"` or dotted string
         like `textDocumentSync.didOpen`). A capability is considered disabled when the value at that path is `True`, or
