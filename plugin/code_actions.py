@@ -65,7 +65,7 @@ def is_quickfix(action: Command | CodeAction) -> bool:
 
 
 def filter_code_actions_for_diagnostics(
-    config_name: str, diagnostics_count: int, response: list[Command | CodeAction] | None | Error
+    config_name: str, diagnostics_count: int, response: list[Command | CodeAction] | Error | None
 ) -> tuple[str, list[Command | CodeAction]]:
     if isinstance(response, Error) or not response:
         code_actions: list[Command | CodeAction] = []
