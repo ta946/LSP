@@ -471,6 +471,7 @@ def get_initialize_params(
                 "valueSet": SUPPORTED_DIAGNOSTIC_TAGS
             },
             "codeDescriptionSupport": True,
+            "markupMessageSupport": True,
             "dataSupport": True
         },
         "selectionRange": {
