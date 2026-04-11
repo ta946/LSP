@@ -1,12 +1,9 @@
-name: On Release
+name: Dispatch Event On Push
 
 on:
   push:
     branches:
       - main
-  release:
-    types:
-      - published
 
 jobs:
   dispatch:
@@ -19,4 +16,4 @@ jobs:
         with:
           token: ${{ secrets.LSP_UTILS_REPOSITORY_DISPATCH_TOKEN }}
           repository: sublimelsp/lsp_utils
-          event-type: new_release
+          event-type: new_commit
