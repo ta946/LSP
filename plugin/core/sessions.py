@@ -14,6 +14,7 @@ from ...protocol import Diagnostic
 from ...protocol import DiagnosticOptions
 from ...protocol import DiagnosticServerCancellationData
 from ...protocol import DiagnosticSeverity
+from ...protocol import DidChangeConfigurationParams
 from ...protocol import DidChangeWatchedFilesRegistrationOptions
 from ...protocol import DidChangeWorkspaceFoldersParams
 from ...protocol import DocumentDiagnosticReportKind
@@ -161,6 +162,7 @@ import weakref
 
 if TYPE_CHECKING:
     from .active_request import ActiveRequest
+    from .collections import DottedDict
 
 
 InitCallback: TypeAlias = Callable[['Session', bool], None]
@@ -236,8 +238,8 @@ class Manager(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_session(self, config_name: str, file_path: str) -> Session | None:
-        """Gets the session by name and file path."""
+    def get_session(self, config_name: str, file_path: str | None = None) -> Session | None:
+        """Gets the session by name and optional file path."""
         raise NotImplementedError
 
     @abstractmethod
@@ -1168,6 +1170,9 @@ class Session(APIHandler, TransportCallbacks):
     def text_sync_kind(self) -> TextDocumentSyncKind:
         return self.capabilities.text_sync_kind()
 
+    def should_notify_did_change_configuration(self) -> bool:
+        return self.capabilities.should_notify_did_change_configuration()
+
     def should_notify_did_change_workspace_folders(self) -> bool:
         return self.capabilities.should_notify_did_change_workspace_folders()
 
@@ -1312,11 +1317,15 @@ class Session(APIHandler, TransportCallbacks):
 
     def _maybe_send_did_change_configuration(self) -> None:
         if self.config.settings:
-            if self._plugin:
-                self._plugin.on_settings_changed(self.config.settings)
-            variables = self._template_variables()
-            resolved = self.config.settings.get_resolved(variables)
-            self.send_notification(Notification("workspace/didChangeConfiguration", {"settings": resolved}))
+            self.send_notification(Notification("workspace/didChangeConfiguration", {
+                "settings": self._get_resolved_settings()
+            }))
+
+    def _get_resolved_settings(self) -> dict[str, Any]:
+        if self._plugin:
+            self._plugin.on_settings_changed(self.config.settings)
+        variables = self._template_variables()
+        return self.config.settings.get_resolved(variables)
 
     def _template_variables(self) -> dict[str, str]:
         variables = extract_variables(self.window)
@@ -1770,6 +1779,16 @@ class Session(APIHandler, TransportCallbacks):
                 )
                 return
         self.workspace_diagnostics_pending_responses[identifier] = None
+
+    # --- workspace/didChangeConfiguration -----------------------------------------------------------------------------
+
+    def on_server_settings_changed(self, settings: DottedDict) -> None:
+        self.config.settings = settings
+        # https://github.com/microsoft/language-server-protocol/issues/676#issuecomment-486694408
+        params: DidChangeConfigurationParams = {
+            'settings': None if self.should_notify_did_change_configuration() else self._get_resolved_settings()
+        }
+        self.send_notification(Notification('workspace/didChangeConfiguration', params))
 
     # --- server request handlers --------------------------------------------------------------------------------------
 
