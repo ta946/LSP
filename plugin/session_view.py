@@ -4,6 +4,7 @@ from ..protocol import Command
 from ..protocol import DiagnosticSeverity
 from ..protocol import DocumentHighlightKind
 from ..protocol import DocumentUri
+from .core.registry import LspWindowCommand
 from .core.active_request import ActiveRequest
 from .core.constants import ChangeEventAction
 from .core.constants import DIAGNOSTIC_ICON_FLAGS
@@ -83,6 +84,7 @@ class SessionView:
             self._increment_hover_count()
         self._clear_auto_complete_triggers(settings)
         self._setup_auto_complete_triggers(settings)
+        self._is_show_diagnostics = True
 
     def on_before_remove(self) -> None:
         settings: sublime.Settings = self.view.settings()
@@ -310,6 +312,15 @@ class SessionView:
             self._draw_diagnostics(sev, level, multiline_flags or style.multi_line_region_flags, multiline=True)
         self._diagnostic_annotations.draw(self.session_buffer.diagnostics)
 
+    @staticmethod
+    def _get_tags(key):
+        tags = {tag: TagData(f'{key}_tags_{tag}') for tag in DIAGNOSTIC_TAG_SCOPES}
+        return tags
+
+    def _erase_regions_key(self, key):
+        self.view.erase_regions(f"{key}_icon")
+        self.view.erase_regions(f"{key}_underline")
+
     def _draw_diagnostics(
         self,
         severity: DiagnosticSeverity,
@@ -318,7 +329,7 @@ class SessionView:
         multiline: bool
     ) -> None:
         key = self.diagnostics_key(severity, multiline)
-        tags = {tag: TagData(f'{key}_tags_{tag}') for tag in DIAGNOSTIC_TAG_SCOPES}
+        tags = self._get_tags(key)
         data = self._session_buffer.diagnostics_data_per_severity.get((severity, multiline))
         if data and severity <= max_severity_level:
             non_tag_regions = data.regions
@@ -335,8 +346,7 @@ class SessionView:
             self.view.add_regions(f"{key}_icon", non_tag_regions, region_scope, icon, DIAGNOSTIC_ICON_FLAGS)
             self.view.add_regions(f"{key}_underline", non_tag_regions, region_scope, "", flags)
         else:
-            self.view.erase_regions(f"{key}_icon")
-            self.view.erase_regions(f"{key}_underline")
+            self._erase_regions_key(key)
         for data in tags.values():
             if data.regions:
                 self.view.add_regions(
@@ -348,7 +358,19 @@ class SessionView:
             else:
                 self.view.erase_regions(data.key)
 
-    def on_request_started_async(self, request_id: int, request: Request[Any, Any]) -> None:
+    def _hide_diagnostics(self):
+        for severity in reversed(range(1, len(DIAGNOSTIC_SEVERITY) + 1)):
+            for multiline in (True, False):
+                key = self.diagnostics_key(severity, multiline)
+                tags = self._get_tags(key)
+                self._erase_regions_key(key)
+                for data in tags.values():
+                    self.view.erase_regions(data.key)
+
+    def _show_diagnostics(self):
+        self.present_diagnostics_async(is_view_visible=True)
+
+    def on_request_started_async(self, request_id: int, request: Request) -> None:
         self._active_requests[request_id] = ActiveRequest(self, request_id, request)
 
     def on_request_finished_async(self, request_id: int) -> None:
@@ -468,3 +490,27 @@ class SessionView:
 
     def __str__(self) -> str:
         return f'{self.session.config.name}:{self.view.id()}'
+
+
+class LspToggleShowDiagnosticsCommand(LspWindowCommand):
+    @property
+    def view(self) -> Optional[sublime.View]:
+        return self.window.active_view()
+
+    def run(self, toggle=None) -> None:
+        sublime.set_timeout_async(functools.partial(self.run_async, toggle))
+
+    def run_async(self, toggle=None) -> None:
+        session = self.session()
+        if not session:
+            return
+        sv = session.session_view_for_view_async(self.view)
+        if not sv:
+            return
+        if toggle is None:
+            toggle = not sv._is_show_diagnostics
+        sv._is_show_diagnostics = toggle
+        if toggle:
+            sv._show_diagnostics()
+        else:
+            sv._hide_diagnostics()
