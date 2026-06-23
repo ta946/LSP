@@ -281,4 +281,10 @@
     //     "args": {"action": "close"},
     //     "context": [{"key": "lsp.tree_view_sheet_has_focus"}]
     // },
+    // Toggle showing diagnostics
+    {
+        "keys": ["alt+shift+l"],
+        "command": "lsp_toggle_show_diagnostics",
+        "args": {"toggle": null}
+    }
 ]
